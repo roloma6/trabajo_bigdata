@@ -1,0 +1,370 @@
+---
+title: "Los PIGS"
+author: "Manuel Rojo López (roloma6@alumni.uv.es). Universitat de València"
+date: "Enero de 2021 (actualizado el `r format(Sys.time(), '%d-%m-%Y')`)"
+output:
+  html_document:
+    theme: paper
+    highlight: textmate 
+    toc: true
+    toc_depth: 3 
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+    self_contained: true
+    number_sections: false
+    df_print: kable
+    code_download: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r packages-setup, include = FALSE}
+library(tidyverse)
+library(klippy)  #- remotes::install_github("rlesur/klippy")
+library(knitr)
+library(eurostat)
+```
+
+```{r chunk-setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, 
+                      #results = "hold",
+                      cache = FALSE, cache.path = "/caches/", comment = "#>",
+                      #fig.width = 7, #fig.height= 7,   
+                      #out.width = 7, out.height = 7,
+                      collapse = TRUE,  fig.show = "hold",
+                      fig.asp = 7/9, out.width = "60%", fig.align = "center")
+knitr::opts_chunk$set(dev = "png", dev.args = list(type = "cairo-png"))
+```
+
+```{r options-setup, include = FALSE}
+options(scipen = 999) #- para quitar la notación científica
+options("yaml.eval.expr" = TRUE) 
+```
+
+
+```{r klippy, echo = FALSE}
+klippy::klippy(position = c("top", "right")) #- remotes::install_github("rlesur/klippy")
+```
+
+-----------------
+
+Trabajo elaborado para la asignatura "Programación y manejo de datos en la era del Big Data" de la Universitat de València durante el curso 2020-2021. La página web de la asignatura puede verse aquí: <https://perezp44.github.io/intro-ds-20-21-web/>. Los trabajos de mis compañeros de curso pueden verse [aquí](https://perezp44.github.io/intro-ds-20-21-web/07-trabajos.html).
+
+---------------
+
+<br>
+
+# 1. Introducción
+
+En el siguiente trabajo, vamos a hablar sobre los PIGS. 
+
+Algunos se preguntarán, ¿qué es eso de los PIGS? 
+Pues ahora lo vamos a intentar explicar. 
+
+
+PIGS es un acrónimo con connotación negativa (cerdo en castellano), que se usó durante el período de la Gran Recesión para referirse a los países de Europa del Sur, Portugal, Italia, Grecia y España que en ese momento estaban sufriendo con más severidad la crisis económica, más concretamente en cuanto a la deuda pública. 
+
+
+
+```{r, eval = FALSE, echo = FALSE}
+rio::export(unem, "./datos/unem.xls")
+```
+
+```{r eval = TRUE, echo = FALSE}
+knitr::include_graphics(here::here("imagenes", "pigs1.jpg"))
+```
+
+# 2. Objetivo del trabajo
+
+El objetivo del trabajo es analizar algunos datos económicos y sociales que consideramos relevantes de los  países que forman parte del grupo de los PIGS comparándolo con los datos de Alemania y Reino Unido. 
+
+Hemos elegido estos dos países puesto que, por un lado Alemania, suele utilizarse como el ejemplo a seguir, y el Reino Unido, ya que en fue en este país, más concretamente los periódicos económicos, donde surgió  y más se utilizó esta manera despectiva de hablar sobre los países de la Europa Meridional.
+
+## **2.1. El caso de Irlanda**
+
+Dentro de este grupo conocido como PIGS, en ocasiones también se solía incluir a la República de Irlanda, ya que su situación económica era bastante mala. Sin embargo, hemos decidido no incorporar a este país al análisis ya que su consideración de "semi-paraiso fiscal", y su repentino crecimiento del PIB en un 25% en un año, hacen que el análisis se hubieran desvirtuado. 
+
+
+```{r eval = TRUE, echo = FALSE}
+knitr::include_graphics(here::here("imagenes", "ire.jpg"))
+```
+
+
+# 3. Comparación
+
+En esta parte del trabajo, pretendemos, elegir distintas variables que consideremos interesantes para así intentar a través de distintos gráficos y tablas, observar las diferencias si las hubiera entre los países del sur de Europa con respecto a Alemania y Reino Unido. 
+
+En definitiva, lo que buscamos, es ver si se puede tratar de manera homogénea a este grupo de países, y si verdaderamente hay tanta diferencia entre los PIGS y los países supuestamente "ejemplares". 
+
+
+
+## **3.1. Materia Económica**
+
+
+```{r eval = TRUE, echo = FALSE}
+knitr::include_graphics(here::here("imagenes", "eco.jpg"))
+```
+
+### 3.1.1. PIB per cápita
+
+El primer indicador que vamos a utilizar es el PIB per cápita.
+
+Probablemente este sea el dato económico más popular y más representativo del desarrollo y el bienestar de un país. En él se muestra la relación entre el total del PIB de un país y su población. 
+
+Pese a esto, somos conscientes que el dato del PIB per capita no es perfecto, y que la renta no está equitativamente distribuida. Sin embargo, debemos admitir que sigue siendo uno de los datos más útiles para analizar el bienestar social de un país. 
+
+
+```{r}
+Pib_per_capita <- get_eurostat("sdg_08_10")
+
+ppc <- Pib_per_capita %>% filter(unit %in% c("CLV10_EUR_HAB"))%>% select(geo, time, values) 
+
+ppc_paises <- ppc %>% filter(geo %in% c("PT", "IT", "ES", "EL", "DE", "UK"))
+
+graf <- ggplot(ppc_paises, aes(x=time, y=values, group=geo, color=geo)) +
+  geom_point() +
+  geom_line() +
+  scale_color_manual(values=c("darkblue","red", "gold", "green", "grey", "brown", "orange"))  +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title= "Progresión PIB per cápita",
+    subtitle = "Los PIGS vs Alemania y Reino Unido")
+  
+graf 
+
+ggplot(ppc_paises, aes(x=time, y=values, group=geo, color=geo)) +
+  geom_point(alpha=0.6) +
+  geom_abline(intercept=0, slope=1, linetype="dashed") +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title = "Crecimiento PIB per cápita", subtitle = "PIGS vs Alemania y Reino Unido") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  guides(color=guide_legend(reverse=TRUE))    
+
+
+```
+
+Teniendo en cuenta los gráficos, se puede observar como en relación con el PIB per cápita que sí existen diferencias.
+
+Alemania y Reino Unido serían los países con mayor renta por habitante, tras estos, en una posición intermedia se encontrarían Italia y España. Y finalmente, con una renta ligeramente inferior, Portugal y Grecia. 
+
+
+
+
+
+
+
+### 3.1.2. Desempleo
+
+El segundo indicador que vamos a comparar es la tasa de paro o desempleo. 
+
+El desempleo consiste en un desajuste en el mercado laboral, en el que la demanda de trabajo (las empresas) es menor que la oferta (los trabajadores). Esto es, cuando existen más personas dispuestas a ofrecer su trabajo a las empresas que puestos de trabajo disponibles en ese momento. 
+
+Poseer una alta tasa de desempleo supone un problema importante para un país ya que afecta de manera directa al crecimiento económico y al desarrollo del país. Además, las consecuencias de una tasa de paro elevada,tienen un fuerte carácter económicas en cuanto a la disminución de la producción real, la reducción de la demanda o el aumento del déficit público, pero tampoco podemos olvidarnos de los efectos de caracter social, como los problemas psicológicos o la pérdida de capital humano. 
+
+```{r}
+paro_pais<- get_eurostat("tps00203")
+
+paro_orden <- paro_pais %>% filter(unit %in% c("PC_ACT"))%>% select(geo, time, values) 
+                      
+piigs <- paro_orden %>% filter(geo %in% c("PT", "IT", "ES", "EL", "DE", "UK"))
+
+cerdos <- ggplot(piigs, aes(x=time, y=values, group=geo, color=geo)) +
+  geom_point() +
+  geom_line() +
+  scale_color_manual(values=c("darkblue","red", "gold", "green", "grey", "orange"))  +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title="Desempleo", subtitle="Los PIGS vs Alemania y Reino Unido")
+
+cerdos
+
+
+
+
+tambienUE <- paro_orden %>% filter(geo %in% c("PT", "IT", "ES", "EL", "DE", "UK"))
+
+
+conjunto <- ggplot(tambienUE, aes(x=Años, y=desempleovalues, group=geo, color=geo)) +
+  geom_point() +
+  geom_line() +
+  scale_color_manual(values=c("darkblue","red", "gold", "green", "grey", "brown", "orange"))  +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title="Los PIGS vs ")
+
+
+
+ggplot(tambienUE , aes(x = time,  y = values, color= geo))+ geom_point() + ylim(c(NA, 30)) + 
+  labs(title = "Desempleo", subtitle = "Los PIGS vs Alemania y Reino Unido", x = "Años",
+       y = "Desempleo")+ theme(axis.line = element_line(color = "orange",size=1))+
+  theme(panel.background=element_blank())+
+  theme(axis.text = element_text(size = 8,face="bold"),
+        plot.title = element_text(size=16,face = "bold"))+  gghighlight::gghighlight() + 
+  facet_wrap(vars(geo))
+
+
+
+
+```
+
+Una vez observados los gráficos, volvemos a encontrar diferencias entre los PIGS y Alemania y el Reino Unido. 
+
+En este caso, observamos como las tasas de paro de España y Grecia han llegado a ser verdaderamente altas, llegando a superar, en los peores años de la crisis(2013), el 25%. En una posición intermedia, estarían Italia y Portugal, mientras que Alemania y Reino Unido tienen unas cifras bastante bajas, prácticamente, sin superar en ningún momento el 10%
+
+
+## **3.2 Materia Social**
+
+
+```{r eval = TRUE, echo = FALSE}
+knitr::include_graphics(here::here("imagenes", "soc.jpg"))
+```
+
+### 3.2.1. Gasto en Protección Social
+
+El tercer indicador que hemos escogido es el porcentaje del PIB que representa el Gasto Social en relación con el PIB. Esto es, que porcentaje del PIB se dedica a Protección Social. 
+
+El gasto en protección social es aquella partida del presupuesto que el Estado destina a satisfacer las necesidades básicas de los ciudadanos. Esto es, aquellas necesidades básicas que son imprescindibles para lograr una vida digna, sana, prolongada, creativa y productiva. El gasto social es el instrumento a través del cual se ayuda a lograr la igualdad de oportunidades a aquellos ciudadanos que se encuentran en una peor situación.
+
+
+```{r}
+
+
+prosoc <- get_eurostat("spr_exp_sum")
+
+prot <- prosoc %>% filter(unit %in% c("PC_GDP")) %>% filter(spdeps %in% c("TOTALNOREROUTE")) %>% filter(geo %in% c("PT", "IT", "ES", "EL", "DE", "UK")) 
+
+prote <- ggplot(prot, aes(x=time, y=values, color = geo)) + geom_line() + facet_grid(rows = vars(geo)) +
+labs(title = "Evolución del Gasto en Protección Social en relación con el PIB")
+
+prote
+
+ggplot(prot, aes(x=time, y=values, group=geo, color=geo)) +
+  geom_point(alpha=0.6) +
+  geom_abline(intercept=0, slope=1, linetype="dashed") +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title = "Crecimiento del Gasto en Protección Social", subtitle = "PIGS vs Alemania y Reino Unido") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  guides(color=guide_legend(reverse=TRUE))  
+
+
+
+```
+  
+Observando los gráficos podemos observar como los PIGS, a finales de los 90s el gasto social era bastante menor que el de Reino Unido y sobre todo, Alemania. Sin embargo, la tendencia desde el inicio del siglo XXI ha sido la de la convergencia hacia unos valores de Gasto Social similares, de aproximadamente un cuarta parte del PIB.
+
+  
+  
+### 3.2.2. Exclusión social 
+ 
+Este indicador muestra la cantidad de personas que se encuentran en una situación de riesgo de exclusión social. Esto es, la falta de participación por parte de ciudadanos en la vida cultural, económica y social de sus respectivas sociedades debido a la carencia de los derechos, recursos y capacidades básicas factores que hacen posible una participación social plena.
+
+Según la Comisión Europea una persona está en riesgo de pobreza y exclusión social si cumplen con los siguentes puntos. 
+
+1. Cuando no alcanza un 60 % del Salario mínimo del país, pese a percibir ayudas por parte del Estado. 
+
+2. Cuando existe desempleo de larga duración en buena parte de los miembros de la familia.
+
+3. Cuando las personas no pueden acceder a más de la mitad de los siguientes items
+ - Pagar el alquiler o las facturas de servicios públicos.
+ - Calefacción adecuada.
+ - No poder enfrentarse a gastos inesperados.
+ - Comer Carne, Pescado o Proteínas equivalentes cada 2 días.
+ - Una semana de vacaciones fuera de casa al año.
+ - Un coche.
+ - Una lavadora.
+ - Una televisión en color.
+ - Un teléfono.
+
+```{r}
+
+exclusion <- get_eurostat ("ilc_peps01")
+
+exc <-  exclusion %>% filter(unit %in% c("PC")) %>% filter(sex %in% c("T")) %>% filter(age %in% c("TOTAL")) %>% select(geo, time, values) 
+
+
+exclu <- exc %>% filter(geo %in% c("PT", "IT", "ES", "EL", "DE", "UK"))
+
+
+ggplot(exclu, aes(time, values, color = geo)) + geom_point() +  geom_smooth() + labs(title = "% de personas en riesgo de exclusión social", subtitle = "PIGS vs Alemania y Reino Unido")
+
+
+```
+
+```{r}
+Espa <- exclu %>% filter(time == "2019-01-01")
+
+knitr::kable(Espa, align = "c", caption = "Datos de la exclusión social en la actualidad") %>% kableExtra::kable_styling(fixed_thead = list(enabled = T, background = "yellow"))
+```
+
+
+A diferencia de lo que ocurre en cuanto al porcentaje destinado a protección social, donde las cifras han convergido, en este apartado, sí que se observan diferencias notables con respecto a las personas en riesgo de pobreza y exclusión social. Por ejemplo, los datos de Alemania y Grecia divergen en más de un 10%. 
+
+Estos datos nos muestran que tal vez lo importante, no solo sea cuanto dinero se  destina a la protección social, sino cómo y en qué se utiliza. 
+
+
+
+
+
+# 4. Conclusiones
+
+En este breve trabajo hemos pretendido observar la trayectoria reciente, de los  PIGS comparándolos con el Reino Unido y Alemania. 
+
+Queríamos, por una parte saber en que medida los PIGS eran homegéneos entre ellos. Así como, cotejar estos datos con esos países de Europa Central, que suelen ser considerados como "ejemplos a seguir". 
+
+A lo largo de la investigación hemos mostrado gráficos de dos ámbitos distintos, del económico (PIB per cápita y Desempleo) y del social (Gasto social en relación con el PIB y Riesgo de pobreza y exclusión social). 
+
+Querríamos destacar que en líneas generales sí que se han observado diferencias entre los PIGS y los países de Europa del norte y central. Entre ellas, destacaríamos las divergencias en materia económica, en el PIB per cápita y en la tasa de paro. En el ámbito social, en cuanto al gasto destinado a protección social se puede observar una cierta convergencia en valores de aproximadamente, 25%, del total del PIB. Pese a esto, se mantienen las distancias en cuanto a porcentaje de personas que viven en riesgo de pobreza o exclusión social. 
+
+En definitiva, se puede afirmar en base a los datos, que persisten esas disparidades y diferencias entre los países del sur, PIGS y los del norte, Reino Unido y Alemania. 
+
+## 4.1. Satisfacción con la vida
+
+Para finalizar el trabajo, hemos querido mostrar un gráfico en donde se compare una variable subjetiva como es la satisfacción con la vida. Y con ello poder observar si hay o no una correlación entre buenos datos macroeconoómicos y sociales con, la satisfacción vital. 
+
+```{r}
+satis <- get_eurostat("ilc_pw01")
+
+vida <-  satis %>% filter(age %in% c("Y_GE16")) %>% filter(sex %in% c("T")) %>% filter(indic_wb %in% c("LIFESAT")) %>% filter(isced11 %in% c("TOTAL")) %>% filter(age %in% c("Y_GE16")) %>% select(geo, time, values) 
+
+
+vivir <- vida %>% filter(geo %in% c("PT", "IT", "ES", "EL", "DE", "UK"))
+
+mean <- vivir %>% group_by(geo) %>% summarize(mean(values))
+
+mean <- mean %>% rename("mean" = "mean(values)")
+
+
+meanb <- mean %>%
+        mutate(GEO = forcats::fct_reorder(geo, mean, .desc=TRUE))
+
+ggplot(meanb, aes(fct_rev(GEO), mean, fill=geo)) + geom_col() + labs(title = "Satisfacción con la vida", subtitle = "Valores medios", y="Media", x=NULL) +   scale_y_continuous(breaks = seq(0, 8, 2), limits = c(0, 10)) + theme_bw() 
+
+
+
+
+
+```
+
+Podemos decir que, aparemente, sí que hay cierta correlación, pero que a simple vista no parece que ésta sea muy fuerte. 
+
+
+
+
+
+# 5. Referencias
+ 
+ - Database Eurostat
+ - El trabajo Grupal realizado sobre los Juegos Olímpicos junto a mis compañeros Manuel Jiménez y Antonio Langa. 
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
